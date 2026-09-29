@@ -32,7 +32,7 @@ function buildRun(config: TimerConfig): LaneRun[] {
   }))
 }
 
-export function useTimerStore(persistence: TimerPersistencePort = defaultPersistence) {
+export function useTimerStoreImpl(persistence: TimerPersistencePort = defaultPersistence) {
   const [config, setConfig] = useState<TimerConfig>(DEFAULT_CONFIG)
   const [run, setRun] = useState<LaneRun[] | null>(null)
   const [isReady, setIsReady] = useState(false)

@@ -1,4 +1,3 @@
-// src/components/LanePanel.tsx
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -14,7 +13,6 @@ interface LanePanelProps {
   onToggle: () => void;
   onSplit: () => void;
   onUndo: () => void;
-  onNext: () => void;
   onReset: () => void;
 }
 
@@ -29,7 +27,6 @@ export default function LanePanel({
   onToggle,
   onSplit,
   onUndo,
-  onNext,
   onReset,
 }: LanePanelProps) {
   const meters = lane.sp.length * (lane.m || 50);
@@ -91,19 +88,15 @@ export default function LanePanel({
         PARCIAL
       </Button>
 
-      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-        <Button
-          variant="outlined"
-          fullWidth
-          onClick={onUndo}
-          disabled={lane.sp.length === 0}
-        >
-          Deshacer parcial
-        </Button>
-        <Button variant="outlined" fullWidth onClick={onNext}>
-          Siguiente nadador
-        </Button>
-      </Stack>
+      <Button
+        variant="outlined"
+        fullWidth
+        onClick={onUndo}
+        disabled={lane.sp.length === 0}
+        sx={{ mb: 1 }}
+      >
+        Deshacer parcial
+      </Button>
 
       <Box
         sx={{

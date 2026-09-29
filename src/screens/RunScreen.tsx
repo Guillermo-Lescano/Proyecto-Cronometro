@@ -1,4 +1,3 @@
-// src/screens/RunScreen.tsx
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
@@ -6,7 +5,7 @@ import IconButton from "@mui/material/IconButton";
 import Divider from "@mui/material/Divider";
 import SettingsIcon from "@mui/icons-material/Settings";
 import type { ScreenProps } from "../types";
-import { useTimerStore } from "../store/useTimerStore";
+import { useTimerStore } from "../store/TimerStoreContext";
 import { useWakeLock } from "../hooks/useWakeLock";
 import LanePanel from "../components/LanePanel";
 
@@ -29,7 +28,6 @@ export default function RunScreen({ goTo }: ScreenProps) {
     stopAllLanes,
     splitLane,
     undoSplit,
-    nextSwimmer,
     resetLane,
     resetAll,
   } = useTimerStore();
@@ -113,7 +111,6 @@ export default function RunScreen({ goTo }: ScreenProps) {
             onToggle={() => toggleLane(i)}
             onSplit={() => handleSplit(i)}
             onUndo={() => undoSplit(i)}
-            onNext={() => nextSwimmer(i)}
             onReset={() => resetLane(i)}
           />
         ))}

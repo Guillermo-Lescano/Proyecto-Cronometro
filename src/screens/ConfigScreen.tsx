@@ -13,7 +13,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import type { ScreenProps } from "../types";
-import { useTimerStore } from "../store/useTimerStore";
+import { useTimerStore } from "../store/TimerStoreContext";
 import type { TimerConfig } from "../store/types";
 
 const MAX_LANES = 10;

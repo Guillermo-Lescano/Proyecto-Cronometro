@@ -13,8 +13,6 @@ export function createLocalStorageTimerPersistence(): TimerPersistencePort {
         if (!raw) return null
         return JSON.parse(raw) as PersistedTimerState
       } catch {
-        // JSON corrupto, localStorage deshabilitado, etc. — arrancamos
-        // de cero en vez de romper la app.
         return null
       }
     },
@@ -28,23 +26,3 @@ export function createLocalStorageTimerPersistence(): TimerPersistencePort {
     },
   }
 }
-
-// EJEMPLO de cómo se vería el reemplazo futuro por FastAPI —
-// no se usa todavía, queda solo como referencia de la forma:
-//
-// export function createApiTimerPersistence(baseUrl: string): TimerPersistencePort {
-//   return {
-//     async load() {
-//       const res = await fetch(`${baseUrl}/race/current`)
-//       if (!res.ok) return null
-//       return res.json()
-//     },
-//     async save(state) {
-//       await fetch(`${baseUrl}/race/current`, {
-//         method: 'PUT',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify(state),
-//       })
-//     },
-//   }
-// }

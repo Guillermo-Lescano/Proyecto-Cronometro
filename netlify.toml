@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Redirect de SPA: sin esto, recargar la página estando en una ruta
+# que no sea "/" (o abrir un link directo a ella) da 404, porque
+# Netlify busca un archivo real en esa ruta y no lo encuentra — todo
+# el ruteo vive del lado del cliente, en App.tsx.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

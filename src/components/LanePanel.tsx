@@ -5,24 +5,19 @@ import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import type { LaneRun } from "../store/types";
 import { formatElapsed } from "../utils/time";
-
 interface LanePanelProps {
   lane: LaneRun;
-  laneNumber: number;
   elapsedMs: number;
   onToggle: () => void;
   onSplit: () => void;
   onUndo: () => void;
   onReset: () => void;
 }
-
 function prevAmount(lane: LaneRun, k: number): number {
   return k > 0 ? lane.sp[k - 1].a : 0;
 }
-
 export default function LanePanel({
   lane,
-  laneNumber,
   elapsedMs,
   onToggle,
   onSplit,
@@ -30,52 +25,84 @@ export default function LanePanel({
   onReset,
 }: LanePanelProps) {
   const meters = lane.sp.length * (lane.m || 50);
-
   return (
-    <Paper sx={{ p: 1.5, borderRadius: 3 }}>
-      <Typography variant="h6" sx={{ color: "warning.main", mb: 0.5 }}>
-        {lane.team}
-      </Typography>
-
-      <Typography color="text.secondary" sx={{ mb: 1 }}>
-        Nadador: <b>{lane.sw[lane.cur]}</b> ({lane.cur + 1}/{lane.sw.length})
-      </Typography>
-
+    <Paper sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 3 }}>
+      {" "}
+      <Typography
+        variant="h6"
+        sx={{
+          color: "warning.main",
+          mb: 0.5,
+          fontSize: { xs: "1rem", sm: "1.25rem" },
+        }}
+      >
+        {" "}
+        {lane.team}{" "}
+      </Typography>{" "}
+      <Typography
+        color="text.secondary"
+        sx={{ mb: 1, fontSize: { xs: "0.85rem", sm: "1rem" } }}
+      >
+        {" "}
+        Nadador: <b>{lane.sw[lane.cur]}</b> ({lane.cur + 1}/{lane.sw.length}
+        ){" "}
+      </Typography>{" "}
       <Typography
         align="center"
         sx={{
           fontFamily: "ui-monospace, Menlo, monospace",
           fontWeight: 800,
-          fontSize: "clamp(38px, 11vw, 60px)",
+          fontSize: { xs: 32, sm: 42, md: 52 },
           lineHeight: 1.1,
           color: "primary.main",
           my: 0.5,
         }}
       >
-        {formatElapsed(elapsedMs)}
-      </Typography>
-
-      <Typography align="center" sx={{ mb: 1 }}>
-        <Box component="b" sx={{ color: "warning.main", fontSize: 24 }}>
-          {meters} m
+        {" "}
+        {formatElapsed(elapsedMs)}{" "}
+      </Typography>{" "}
+      <Typography
+        align="center"
+        sx={{ mb: 1, fontSize: { xs: "0.8rem", sm: "1rem" } }}
+      >
+        {" "}
+        <Box
+          component="b"
+          sx={{ color: "warning.main", fontSize: { xs: 20, sm: 24 } }}
+        >
+          {" "}
+          {meters} m{" "}
         </Box>{" "}
-        · {lane.sp.length} parciales
-      </Typography>
-
-      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+        · {lane.sp.length} parciales{" "}
+      </Typography>{" "}
+      <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} sx={{ mb: 1 }}>
+        {" "}
         <Button
           variant="contained"
           color={lane.running ? "secondary" : "primary"}
           fullWidth
           onClick={onToggle}
+          sx={{
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            px: { xs: 0.5, sm: 1.5 },
+          }}
         >
-          {lane.running ? "Pausa" : lane.acc ? "Seguir" : "Iniciar"}
-        </Button>
-        <Button variant="outlined" fullWidth onClick={onReset}>
-          Reset
-        </Button>
-      </Stack>
-
+          {" "}
+          {lane.running ? "Pausa" : lane.acc ? "Seguir" : "Iniciar"}{" "}
+        </Button>{" "}
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={onReset}
+          sx={{
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            px: { xs: 0.5, sm: 1.5 },
+          }}
+        >
+          {" "}
+          Reset{" "}
+        </Button>{" "}
+      </Stack>{" "}
       <Button
         variant="contained"
         color="warning"
@@ -83,29 +110,34 @@ export default function LanePanel({
         size="large"
         disabled={!lane.running}
         onClick={onSplit}
-        sx={{ minHeight: 88, fontSize: 28, mb: 1 }}
+        sx={{
+          minHeight: { xs: 64, sm: 88 },
+          fontSize: { xs: 20, sm: 28 },
+          mb: 1,
+        }}
       >
-        PARCIAL
-      </Button>
-
+        {" "}
+        PARCIAL{" "}
+      </Button>{" "}
       <Button
         variant="outlined"
         fullWidth
         onClick={onUndo}
         disabled={lane.sp.length === 0}
-        sx={{ mb: 1 }}
+        sx={{ mb: 1, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
       >
-        Deshacer parcial
-      </Button>
-
+        {" "}
+        Deshacer parcial{" "}
+      </Button>{" "}
       <Box
         sx={{
           maxHeight: 180,
           overflowY: "auto",
           fontFamily: "ui-monospace, Menlo, monospace",
-          fontSize: 15,
+          fontSize: { xs: 13, sm: 15 },
         }}
       >
+        {" "}
         {[...lane.sp]
           .map((split, k) => ({ split, k }))
           .reverse()
@@ -121,23 +153,24 @@ export default function LanePanel({
                 borderColor: "divider",
               }}
             >
-              <b>{k + 1}</b>
-              <span>{formatElapsed(split.a)}</span>
-              <span>{formatElapsed(split.a - prevAmount(lane, k))}</span>
+              {" "}
+              <b>{k + 1}</b> <span>{formatElapsed(split.a)}</span>{" "}
+              <span> {formatElapsed(split.a - prevAmount(lane, k))} </span>{" "}
               <Typography
                 component="small"
                 sx={{
                   gridColumn: "1 / -1",
                   color: "text.secondary",
                   fontFamily: "inherit",
-                  fontSize: 13,
+                  fontSize: { xs: 11, sm: 13 },
                 }}
               >
-                {lane.sw[split.s]}
-              </Typography>
+                {" "}
+                {lane.sw[split.s]}{" "}
+              </Typography>{" "}
             </Box>
-          ))}
-      </Box>
+          ))}{" "}
+      </Box>{" "}
     </Paper>
   );
 }

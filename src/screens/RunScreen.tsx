@@ -94,19 +94,28 @@ export default function RunScreen({ goTo }: ScreenProps) {
         </Button>
       </Stack>
 
-      <Box
+      {/* <Box
         sx={{
           display: "grid",
           gap: 1.25,
           gridTemplateColumns:
-            "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+            "repeat(auto-fit, minmax(min(100%, 270px), 1fr))",
+        }}
+      > */}
+      <Box
+        sx={{
+          display: "grid",
+          gap: 1.25,
+          gridTemplateColumns: "1fr 1fr",
+          "@media (max-width: 350px)": {
+            gridTemplateColumns: "1fr",
+          },
         }}
       >
         {run.map((lane, i) => (
           <LanePanel
             key={i}
             lane={lane}
-            laneNumber={i + 1}
             elapsedMs={getElapsedMs(lane)}
             onToggle={() => toggleLane(i)}
             onSplit={() => handleSplit(i)}

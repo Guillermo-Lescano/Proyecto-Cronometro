@@ -1,27 +1,19 @@
-// src/hooks/useWakeLock.ts
 import { useEffect, useRef } from 'react'
 
-interface WakeLockSentinelLike {
-  release: () => Promise<void>
-  addEventListener: (type: 'release', listener: () => void) => void
-}
-interface NavigatorWithWakeLock extends Navigator {
-  wakeLock?: {
-    request: (type: 'screen') => Promise<WakeLockSentinelLike>
-  }
-}
-
+// Pide el Wake Lock mientras `active` sea true, y lo libera cuando
+// pasa a false. Si la pestaña vuelve a primer plano con `active`
+// todavía en true (el lock se libera solo cuando la pestaña se
+// oculta), lo vuelve a pedir.
 export function useWakeLock(active: boolean) {
-  const lockRef = useRef<WakeLockSentinelLike | null>(null)
+  const lockRef = useRef<WakeLockSentinel | null>(null)
 
   useEffect(() => {
-    const nav = navigator as NavigatorWithWakeLock
     let cancelled = false
 
     async function acquire() {
-      if (!nav.wakeLock || lockRef.current) return
+      if (!navigator.wakeLock || lockRef.current) return
       try {
-        const lock = await nav.wakeLock.request('screen')
+        const lock = await navigator.wakeLock.request('screen')
         if (cancelled) {
           lock.release().catch(() => {})
           return
@@ -32,6 +24,7 @@ export function useWakeLock(active: boolean) {
         })
       } catch {
         // Permiso denegado, no soportado, documento no visible, etc.
+        // No es crítico: el cronómetro sigue funcionando igual.
       }
     }
 
@@ -55,9 +48,8 @@ export function useWakeLock(active: boolean) {
 
   useEffect(() => {
     function onVisibilityChange() {
-      const nav = navigator as NavigatorWithWakeLock
-      if (document.visibilityState === 'visible' && active && !lockRef.current && nav.wakeLock) {
-        nav.wakeLock
+      if (document.visibilityState === 'visible' && active && !lockRef.current && navigator.wakeLock) {
+        navigator.wakeLock
           .request('screen')
           .then((lock) => {
             lockRef.current = lock

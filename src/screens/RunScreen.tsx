@@ -105,10 +105,11 @@ export default function RunScreen({ goTo }: ScreenProps) {
       <Box
         sx={{
           display: "grid",
-          gap: 1.25,
+          gap: 1,
           gridTemplateColumns: "1fr 1fr",
           "@media (max-width: 350px)": {
             gridTemplateColumns: "1fr",
+            gap: 4,
           },
         }}
       >

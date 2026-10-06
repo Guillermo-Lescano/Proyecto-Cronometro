@@ -26,7 +26,12 @@ export default function LanePanel({
 }: LanePanelProps) {
   const meters = lane.sp.length * (lane.m || 50);
   return (
-    <Paper sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 3 }}>
+    <Paper
+      sx={{
+        p: { xs: 1, sm: 1.5 },
+        borderRadius: { xs: 1, sm: 2, md: 3 },
+      }}
+    >
       {" "}
       <Typography
         variant="h6"
@@ -83,25 +88,29 @@ export default function LanePanel({
           fullWidth
           onClick={onToggle}
           sx={{
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-            px: { xs: 0.5, sm: 1.5 },
+            minHeight: { xs: 32, sm: 36, md: 42 },
+            height: { xs: 32, sm: 36, md: 42 },
+            fontSize: { xs: "0.7rem", sm: "0.75rem", md: "0.875rem" },
+            px: { xs: 0.5, sm: 1, md: 1.5 },
+            py: 0,
           }}
         >
-          {" "}
-          {lane.running ? "Pausa" : lane.acc ? "Seguir" : "Iniciar"}{" "}
-        </Button>{" "}
+          {lane.running ? "Pausa" : lane.acc ? "Seguir" : "Iniciar"}
+        </Button>
         <Button
           variant="outlined"
           fullWidth
           onClick={onReset}
           sx={{
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-            px: { xs: 0.5, sm: 1.5 },
+            minHeight: { xs: 32, sm: 36, md: 42 },
+            height: { xs: 32, sm: 36, md: 42 },
+            fontSize: { xs: "0.7rem", sm: "0.75rem", md: "0.875rem" },
+            px: { xs: 0.5, sm: 1, md: 1.5 },
+            py: 0,
           }}
         >
-          {" "}
-          Reset{" "}
-        </Button>{" "}
+          Reset
+        </Button>
       </Stack>{" "}
       <Button
         variant="contained"
@@ -131,7 +140,7 @@ export default function LanePanel({
       </Button>{" "}
       <Box
         sx={{
-          maxHeight: 180,
+          maxHeight: 150,
           overflowY: "auto",
           fontFamily: "ui-monospace, Menlo, monospace",
           fontSize: { xs: 13, sm: 15 },
@@ -146,16 +155,17 @@ export default function LanePanel({
               key={k}
               sx={{
                 display: "grid",
-                gridTemplateColumns: "34px 1fr 1fr",
+                gridTemplateColumns: "10% 1fr 1fr",
                 gap: 0.75,
                 py: 0.5,
                 borderBottom: "1px solid",
                 borderColor: "divider",
               }}
             >
-              {" "}
-              <b>{k + 1}</b> <span>{formatElapsed(split.a)}</span>{" "}
-              <span> {formatElapsed(split.a - prevAmount(lane, k))} </span>{" "}
+              {""}
+              <b>{k + 1}</b> <span>{formatElapsed(split.a)}</span>
+              <span> {formatElapsed(split.a - prevAmount(lane, k))} </span>
+              {""}
               <Typography
                 component="small"
                 sx={{

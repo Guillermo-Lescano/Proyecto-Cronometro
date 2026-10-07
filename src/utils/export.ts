@@ -34,6 +34,13 @@ export function swimmerRows(lane: LaneRun, swimmerIndex: number): SwimmerSplitRo
   }))
 }
 
+// La mejor marca (tirada más rápida) de un nadador, en ms. Devuelve
+// null si tiene una sola tirada (no hay nada contra qué compararla).
+export function bestPartialMs(rows: SwimmerSplitRow[]): number | null {
+  if (rows.length <= 1) return null
+  return Math.min(...rows.map((r) => r.partial))
+}
+
 // Mismas diferencias que swimmerRows, pero indexadas por la posición
 // del parcial dentro de lane.sp — para poder recorrer lane.sp en su
 // orden original (como hace buildCsv) y de todos modos saber la
@@ -45,6 +52,22 @@ function diffsBySplitIndex(lane: LaneRun): Map<number, number | null> {
     swimmerRows(lane, j).forEach((row) => map.set(row.index, row.diffMs))
   })
   return map
+}
+
+// Qué posiciones de lane.sp son la mejor marca de su nadador —
+// mismo criterio que bestPartialMs, pero indexado por split para
+// poder usarlo recorriendo lane.sp en orden (buildCsv).
+function bestSplitIndexes(lane: LaneRun): Set<number> {
+  const best = new Set<number>()
+  lane.sw.forEach((_, j) => {
+    const rows = swimmerRows(lane, j)
+    const bestMs = bestPartialMs(rows)
+    if (bestMs === null) return
+    rows.forEach((row) => {
+      if (row.partial === bestMs) best.add(row.index)
+    })
+  })
+  return best
 }
 
 // Texto corto para el diff en el formato copiable, ej: " (mejoró
@@ -59,19 +82,21 @@ function diffText(diffMs: number | null): string {
 }
 
 // Texto plano compatible con WhatsApp — mismo formato que la
-// versión vanilla, con la comparación contra la tirada anterior
-// agregada al final de cada línea. Con `withTeamHeader` en true
-// (para "Copiar todo"), cada bloque arranca con "Equipo - Nombre"
-// en vez de solo "Nombre".
+// versión vanilla, con la comparación contra la tirada anterior y
+// una ⭐ en la mejor marca de cada nadador. Con `withTeamHeader` en
+// true (para "Copiar todo"), cada bloque arranca con "Equipo -
+// Nombre" en vez de solo "Nombre".
 export function laneToText(lane: LaneRun, withTeamHeader: boolean): string {
   const lines: string[] = []
   lane.sw.forEach((name, j) => {
     const rows = swimmerRows(lane, j)
     if (rows.length === 0) return
+    const bestMs = bestPartialMs(rows)
     lines.push(withTeamHeader ? `${lane.team} - ${name}` : name)
     rows.forEach((row) => {
+      const star = bestMs !== null && row.partial === bestMs ? ' ⭐' : ''
       lines.push(
-        `${row.index + 1}      ${name} - ${formatElapsed(row.cumulative)}      ${formatElapsed(row.partial)}${diffText(row.diffMs)}`,
+        `${row.index + 1}      ${name} - ${formatElapsed(row.cumulative)}      ${formatElapsed(row.partial)}${star}${diffText(row.diffMs)}`,
       )
     })
     lines.push('')
@@ -84,6 +109,8 @@ export async function copyToClipboard(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
   } catch {
+    // Fallback para navegadores sin permiso de portapapeles (o sin
+    // HTTPS): un textarea invisible + document.execCommand.
     const textarea = document.createElement('textarea')
     textarea.value = text
     textarea.style.position = 'fixed'
@@ -98,8 +125,9 @@ export async function copyToClipboard(text: string): Promise<void> {
 const csvQuote = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`
 
 // CSV con ; como separador, para que Excel en español lo abra ya
-// separado en columnas. "diferencia_vs_anterior" va en segundos,
-// con signo, y vacío en la primera tirada de cada nadador.
+// separado en columnas. "diferencia_vs_anterior" va en segundos con
+// signo (vacío en la primera tirada de cada nadador), y
+// "mejor_marca" dice "sí" en la tirada más rápida de cada nadador.
 export function buildCsv(run: LaneRun[]): string {
   const header = [
     'andarivel',
@@ -110,12 +138,14 @@ export function buildCsv(run: LaneRun[]): string {
     'parcial',
     'metros',
     'diferencia_vs_anterior',
+    'mejor_marca',
   ]
     .map(csvQuote)
     .join(';')
   const rows = [header]
   run.forEach((lane, i) => {
     const diffs = diffsBySplitIndex(lane)
+    const best = bestSplitIndexes(lane)
     lane.sp.forEach((split, k) => {
       const partial = split.a - prevAmount(lane, k)
       const meters = (k + 1) * (lane.m || 50)
@@ -131,6 +161,7 @@ export function buildCsv(run: LaneRun[]): string {
           formatElapsed(partial),
           meters,
           diffSeconds,
+          best.has(k) ? 'sí' : '',
         ].join(';'),
       )
     })

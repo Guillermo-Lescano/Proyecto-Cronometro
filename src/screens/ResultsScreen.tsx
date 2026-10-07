@@ -8,6 +8,8 @@ import Divider from "@mui/material/Divider";
 import Snackbar from "@mui/material/Snackbar";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import StarIcon from "@mui/icons-material/Star";
+import ShareIcon from "@mui/icons-material/Share";
 import type { ScreenProps } from "../types";
 import { useTimerStore } from "../store/TimerStoreContext";
 import { formatElapsed } from "../utils/time";
@@ -16,31 +18,55 @@ import {
   copyToClipboard,
   downloadCsv,
   swimmerRows,
+  bestPartialMs,
 } from "../utils/export";
+import { exportResultsPdf } from "../utils/pdf";
 
 // Mejoró (tiempo menor) en verde con flecha hacia abajo, empeoró
 // (tiempo mayor) en rojo con flecha hacia arriba, igual en gris sin
 // ícono. null = primera tirada del nadador, no hay con qué comparar.
+// `word` y `value` van separados (en vez de un solo label) para
+// poder esconder la palabra en pantallas angostas y quedarnos solo
+// con el ícono + el número, que ya alcanza para entenderlo.
 function diffDisplay(diffMs: number | null): {
-  label: string;
+  word: string;
+  value: string;
   color: string;
   Icon: typeof ArrowDownwardIcon | null;
 } | null {
   if (diffMs === null) return null;
   const diffSec = diffMs / 1000;
-  if (diffMs < 0)
+  if (diffMs < 0) {
     return {
-      label: `Mejoró ${diffSec.toFixed(2)} s`,
+      word: "Mejoró",
+      value: `${diffSec.toFixed(2)} s`,
       color: "primary.main",
       Icon: ArrowDownwardIcon,
     };
-  if (diffMs > 0)
+  }
+  if (diffMs > 0) {
     return {
-      label: `Empeoró +${diffSec.toFixed(2)} s`,
+      word: "Empeoró",
+      value: `+${diffSec.toFixed(2)} s`,
       color: "error.main",
       Icon: ArrowUpwardIcon,
     };
-  return { label: "Igual", color: "text.secondary", Icon: null };
+  }
+  return { word: "Igual", value: "", color: "text.secondary", Icon: null };
+}
+
+// No todos los navegadores tienen Web Share (sobre todo de
+// escritorio) — mostramos el botón "Compartir" solo si existe.
+const canShare =
+  typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+async function shareText(text: string, title: string) {
+  try {
+    await navigator.share({ title, text });
+  } catch {
+    // El usuario cerró la hoja de compartir sin elegir nada, o el
+    // navegador la rechazó — no es un error que haya que mostrar.
+  }
 }
 
 export default function ResultsScreen({ goTo }: ScreenProps) {
@@ -85,6 +111,7 @@ export default function ResultsScreen({ goTo }: ScreenProps) {
               const rows = swimmerRows(lane, j);
               if (rows.length === 0) return null;
               const sum = rows.reduce((acc, row) => acc + row.partial, 0);
+              const bestMs = bestPartialMs(rows);
 
               return (
                 <Box key={j} sx={{ mb: 1.5 }}>
@@ -106,15 +133,22 @@ export default function ResultsScreen({ goTo }: ScreenProps) {
                   >
                     {rows.map((row) => {
                       const diff = diffDisplay(row.diffMs);
+                      const isBest = bestMs !== null && row.partial === bestMs;
                       return (
                         <Box
                           key={row.index}
                           sx={{
                             display: "grid",
-                            gridTemplateColumns: "34px 1fr 1.7fr",
-                            gap: 0.75,
+                            gridTemplateColumns: "28px 1fr 1.9fr",
+                            gap: { xs: 0.4, sm: 0.75 },
                             py: 0.35,
                             alignItems: "center",
+                            fontSize: { xs: 13, sm: 15 },
+                            "@media (max-width: 430px)": {
+                              gridTemplateColumns: "22px 0.9fr 2fr",
+                              gap: 0.25,
+                              fontSize: 12,
+                            },
                           }}
                         >
                           <b>{row.index + 1}</b>
@@ -123,26 +157,62 @@ export default function ResultsScreen({ goTo }: ScreenProps) {
                             sx={{
                               display: "flex",
                               alignItems: "center",
-                              flexWrap: "wrap",
-                              gap: 0.5,
+                              flexWrap: "nowrap",
+                              gap: 0.4,
                             }}
                           >
-                            <span>{formatElapsed(row.partial)}</span>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.25,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <span>{formatElapsed(row.partial)}</span>
+                              <StarIcon
+                                titleAccess={
+                                  isBest
+                                    ? "Mejor marca de este nadador"
+                                    : undefined
+                                }
+                                sx={{
+                                  fontSize: { xs: 13, sm: 15 },
+                                  color: "warning.main",
+                                  visibility: isBest ? "visible" : "hidden",
+                                }}
+                              />
+                            </Box>
                             {diff && (
                               <Box
                                 sx={{
                                   display: "flex",
                                   alignItems: "center",
-                                  gap: 0.25,
+                                  gap: 2,
                                   color: diff.color,
                                   fontFamily: "system-ui, sans-serif",
-                                  fontSize: 12,
+                                  fontSize: { xs: 11, sm: 12 },
+                                  whiteSpace: "nowrap",
                                 }}
                               >
                                 {diff.Icon && (
-                                  <diff.Icon sx={{ fontSize: 13 }} />
+                                  <diff.Icon
+                                    sx={{ fontSize: { xs: 12, sm: 13 } }}
+                                  />
                                 )}
-                                {diff.label}
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    display: "inline-block",
+                                    minWidth: "9ch",
+                                    "@media (max-width: 400px)": {
+                                      display: "none",
+                                    },
+                                  }}
+                                >
+                                  {diff.word}
+                                </Box>
+                                {diff.value}
                               </Box>
                             )}
                           </Box>
@@ -154,31 +224,96 @@ export default function ResultsScreen({ goTo }: ScreenProps) {
               );
             })}
 
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => handleCopy(laneToText(lane, false))}
-            >
-              Copiar
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => handleCopy(laneToText(lane, false))}
+              >
+                Copiar
+              </Button>
+              {canShare && (
+                <Button
+                  variant="outlined"
+                  startIcon={<ShareIcon />}
+                  onClick={() =>
+                    shareText(
+                      laneToText(lane, false),
+                      `${lane.team} — resultados`,
+                    )
+                  }
+                  sx={{
+                    "@media (max-width: 430px)": {
+                      minWidth: 0,
+                      px: 1.25,
+                      "& .MuiButton-startIcon": { margin: 0 },
+                    },
+                  }}
+                >
+                  <Box
+                    component="span"
+                    sx={{ "@media (max-width: 430px)": { display: "none" } }}
+                  >
+                    Compartir
+                  </Box>
+                </Button>
+              )}
+            </Stack>
           </Paper>
         );
       })}
 
       <Stack spacing={1}>
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={() =>
-            handleCopy(run.map((lane) => laneToText(lane, true)).join("\n\n"))
-          }
-        >
-          Copiar todo
-        </Button>
-        <Button variant="outlined" fullWidth onClick={() => downloadCsv(run)}>
-          Exportar CSV
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            onClick={() =>
+              handleCopy(run.map((lane) => laneToText(lane, true)).join("\n\n"))
+            }
+          >
+            Copiar todo
+          </Button>
+          {canShare && (
+            <Button
+              variant="outlined"
+              startIcon={<ShareIcon />}
+              onClick={() =>
+                shareText(
+                  run.map((lane) => laneToText(lane, true)).join("\n\n"),
+                  "Resultados — Crono Natación",
+                )
+              }
+              sx={{
+                "@media (max-width: 430px)": {
+                  minWidth: 0,
+                  px: 1.25,
+                  "& .MuiButton-startIcon": { margin: 0 },
+                },
+              }}
+            >
+              <Box
+                component="span"
+                sx={{ "@media (max-width: 430px)": { display: "none" } }}
+              >
+                Compartir todo
+              </Box>
+            </Button>
+          )}
+        </Stack>
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" fullWidth onClick={() => downloadCsv(run)}>
+            Exportar CSV
+          </Button>
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => exportResultsPdf(run)}
+          >
+            Exportar PDF
+          </Button>
+        </Stack>
       </Stack>
 
       <Divider sx={{ my: 2, borderColor: "divider" }} />

@@ -6,14 +6,41 @@ import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Divider from "@mui/material/Divider";
 import Snackbar from "@mui/material/Snackbar";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import type { ScreenProps } from "../types";
 import { useTimerStore } from "../store/TimerStoreContext";
-import type { LaneRun } from "../store/types";
 import { formatElapsed } from "../utils/time";
-import { laneToText, copyToClipboard, downloadCsv } from "../utils/export";
+import {
+  laneToText,
+  copyToClipboard,
+  downloadCsv,
+  swimmerRows,
+} from "../utils/export";
 
-function prevAmount(lane: LaneRun, k: number): number {
-  return k > 0 ? lane.sp[k - 1].a : 0;
+// Mejoró (tiempo menor) en verde con flecha hacia abajo, empeoró
+// (tiempo mayor) en rojo con flecha hacia arriba, igual en gris sin
+// ícono. null = primera tirada del nadador, no hay con qué comparar.
+function diffDisplay(diffMs: number | null): {
+  label: string;
+  color: string;
+  Icon: typeof ArrowDownwardIcon | null;
+} | null {
+  if (diffMs === null) return null;
+  const diffSec = diffMs / 1000;
+  if (diffMs < 0)
+    return {
+      label: `Mejoró ${diffSec.toFixed(2)} s`,
+      color: "primary.main",
+      Icon: ArrowDownwardIcon,
+    };
+  if (diffMs > 0)
+    return {
+      label: `Empeoró +${diffSec.toFixed(2)} s`,
+      color: "error.main",
+      Icon: ArrowUpwardIcon,
+    };
+  return { label: "Igual", color: "text.secondary", Icon: null };
 }
 
 export default function ResultsScreen({ goTo }: ScreenProps) {
@@ -55,14 +82,9 @@ export default function ResultsScreen({ goTo }: ScreenProps) {
             </Typography>
 
             {lane.sw.map((name, j) => {
-              const rows = lane.sp
-                .map((split, k) => ({ split, k }))
-                .filter((r) => r.split.s === j);
+              const rows = swimmerRows(lane, j);
               if (rows.length === 0) return null;
-              const sum = rows.reduce(
-                (acc, { split, k }) => acc + (split.a - prevAmount(lane, k)),
-                0,
-              );
+              const sum = rows.reduce((acc, row) => acc + row.partial, 0);
 
               return (
                 <Box key={j} sx={{ mb: 1.5 }}>
@@ -82,23 +104,51 @@ export default function ResultsScreen({ goTo }: ScreenProps) {
                       fontSize: 15,
                     }}
                   >
-                    {rows.map(({ split, k }) => (
-                      <Box
-                        key={k}
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: "34px 1fr 1fr",
-                          gap: 0.75,
-                          py: 0.25,
-                        }}
-                      >
-                        <b>{k + 1}</b>
-                        <span>{formatElapsed(split.a)}</span>
-                        <span>
-                          {formatElapsed(split.a - prevAmount(lane, k))}
-                        </span>
-                      </Box>
-                    ))}
+                    {rows.map((row) => {
+                      const diff = diffDisplay(row.diffMs);
+                      return (
+                        <Box
+                          key={row.index}
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: "34px 1fr 1.7fr",
+                            gap: 0.75,
+                            py: 0.35,
+                            alignItems: "center",
+                          }}
+                        >
+                          <b>{row.index + 1}</b>
+                          <span>{formatElapsed(row.cumulative)}</span>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                              gap: 0.5,
+                            }}
+                          >
+                            <span>{formatElapsed(row.partial)}</span>
+                            {diff && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 0.25,
+                                  color: diff.color,
+                                  fontFamily: "system-ui, sans-serif",
+                                  fontSize: 12,
+                                }}
+                              >
+                                {diff.Icon && (
+                                  <diff.Icon sx={{ fontSize: 13 }} />
+                                )}
+                                {diff.label}
+                              </Box>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })}
                   </Box>
                 </Box>
               );

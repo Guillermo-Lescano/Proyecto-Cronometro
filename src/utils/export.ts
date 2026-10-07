@@ -70,15 +70,23 @@ function bestSplitIndexes(lane: LaneRun): Set<number> {
   return best
 }
 
-// Texto corto para el diff en el formato copiable, ej: " (mejoró
-// -2.10s)" / " (empeoró +1.30s)" / " (igual)". Vacío si no hay
-// comparación posible (primera tirada del nadador).
+// Ancho fijo para la palabra ("Mejoró"/"Empeoró"/"Igual"), igual que
+// en la pantalla: "Empeoró" (7 letras) es la más larga, así que
+// rellenamos todas a ese ancho +1 para que el número que sigue
+// arranque siempre en la misma columna, EN FUENTE MONOESPACIADA
+// (ver el ``` que envuelve todo el texto más abajo — sin fuente
+// monoespaciada, rellenar con espacios no alinea nada).
+const DIFF_WORD_WIDTH = 8
+
+// Texto para el diff, en columnas fijas: flecha + palabra (ancho
+// fijo) + número. Vacío si no hay comparación posible (primera
+// tirada del nadador).
 function diffText(diffMs: number | null): string {
   if (diffMs === null) return ''
   const diffSec = diffMs / 1000
-  if (diffMs < 0) return ` (mejoró ${diffSec.toFixed(2)}s)`
-  if (diffMs > 0) return ` (empeoró +${diffSec.toFixed(2)}s)`
-  return ' (igual)'
+  if (diffMs < 0) return `  ↓ ${'Mejoró'.padEnd(DIFF_WORD_WIDTH)}${diffSec.toFixed(2)}s`
+  if (diffMs > 0) return `  ↑ ${'Empeoró'.padEnd(DIFF_WORD_WIDTH)}+${diffSec.toFixed(2)}s`
+  return `  → ${'Igual'.padEnd(DIFF_WORD_WIDTH)}`
 }
 
 // Texto plano compatible con WhatsApp — mismo formato que la
@@ -86,23 +94,38 @@ function diffText(diffMs: number | null): string {
 // una ⭐ en la mejor marca de cada nadador. Con `withTeamHeader` en
 // true (para "Copiar todo"), cada bloque arranca con "Equipo -
 // Nombre" en vez de solo "Nombre".
+//
+// Todo el bloque va envuelto entre ``` — eso le dice a WhatsApp que
+// lo muestre en fuente monoespaciada (todas las letras con el mismo
+// ancho), que es lo único que hace que rellenar con espacios sirva
+// para alinear columnas de verdad, igual que ya hacíamos en la
+// pantalla con minWidth/ch. Contra: si este texto se pega en otro
+// lado que no sea WhatsApp, esos ``` quedan sueltos.
 export function laneToText(lane: LaneRun, withTeamHeader: boolean): string {
   const lines: string[] = []
   lane.sw.forEach((name, j) => {
     const rows = swimmerRows(lane, j)
     if (rows.length === 0) return
     const bestMs = bestPartialMs(rows)
-    lines.push(withTeamHeader ? `${lane.team} - ${name}` : name)
+    lines.push(withTeamHeader ? `${lane.team} - ${name}` : `_${name}`)
     rows.forEach((row) => {
-      const star = bestMs !== null && row.partial === bestMs ? ' ⭐' : ''
-      lines.push(
+      // Reservamos el espacio de la estrella siempre (un espacio en
+      // blanco cuando no es la mejor marca), igual que el
+      // visibility:hidden de la pantalla, para que la comparación
+      // que sigue no se corra según si hay estrella o no.
+      const index = String(row.index + 1).padStart(2, " ");
+      const star = bestMs !== null && row.partial === bestMs ? ' ⭐' : '    '
+      /* lines.push(
         `${row.index + 1}      ${name} - ${formatElapsed(row.cumulative)}      ${formatElapsed(row.partial)}${star}${diffText(row.diffMs)}`,
-      )
-    })
+      ) */
+     lines.push( `${index} ${name} - ${formatElapsed(row.cumulative)}   ${formatElapsed(row.partial)}${star}${diffText(row.diffMs)}`, );
+    });
+    
     lines.push('')
   })
   lines.push(`Total: ${lane.sp.length * (lane.m || 50)} m`)
-  return lines.join('\n').trim()
+  const body = lines.join('\n').trim()
+  return `\`\`\`\n${body}\n\`\`\``
 }
 
 export async function copyToClipboard(text: string): Promise<void> {

@@ -3,18 +3,15 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
 import Paper from "@mui/material/Paper";
 import Divider from "@mui/material/Divider";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import CloseIcon from "@mui/icons-material/Close";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import type { ScreenProps } from "../types";
 import { useTimerStore } from "../store/TimerStoreContext";
 import type { TimerConfig } from "../store/types";
+import SwimmerList from "../components/SwimmerList";
 
 const MAX_LANES = 10;
 const MIN_LANES = 1;
@@ -102,15 +99,19 @@ export default function ConfigScreen({ goTo }: ScreenProps) {
     }));
   };
 
-  const moveSwimmer = (i: number, j: number, dir: -1 | 1) => {
+  // Mueve al nadador de la posición `from` a la posición `to`
+  // (mismo criterio que arrayMove de dnd-kit, que usa SwimmerList
+  // para mantener sus ids en el mismo orden).
+  const reorderSwimmer = (i: number, from: number, to: number) => {
     updateConfig((prev) => ({
       ...prev,
       cfg: prev.cfg.map((c, idx) => {
         if (idx !== i) return c;
-        const target = j + dir;
-        if (target < 0 || target >= c.sw.length) return c;
+        if (from === to || from < 0 || to < 0) return c;
+        if (from >= c.sw.length || to >= c.sw.length) return c;
         const sw = [...c.sw];
-        [sw[j], sw[target]] = [sw[target], sw[j]];
+        const [moved] = sw.splice(from, 1);
+        sw.splice(to, 0, moved);
         return { ...c, sw };
       }),
     }));
@@ -203,45 +204,17 @@ export default function ConfigScreen({ goTo }: ScreenProps) {
             variant="body2"
             sx={{ mt: 1.5, mb: 1 }}
           >
-            Nadadores en orden de turno · "Parc./nad.": 1 = pasa al siguiente
-            nadador en cada parcial (recomendado), 0 = cambio manual
+            Nadadores en orden de turno (arrastrá el ícono ⠿ para cambiar el
+            orden) · "Parc./nad.": 1 = pasa al siguiente nadador en cada parcial
+            (recomendado), 0 = cambio manual
           </Typography>
 
-          <Stack spacing={1}>
-            {lane.sw.map((name, j) => (
-              <Stack key={j} direction="row" spacing={0.5} alignItems="center">
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder={`Nadador ${j + 1}`}
-                  value={name}
-                  onChange={(e) => setSwimmerName(i, j, e.target.value)}
-                />
-                <IconButton
-                  aria-label="Subir nadador"
-                  onClick={() => moveSwimmer(i, j, -1)}
-                  disabled={j === 0}
-                >
-                  <KeyboardArrowUpIcon />
-                </IconButton>
-                <IconButton
-                  aria-label="Bajar nadador"
-                  onClick={() => moveSwimmer(i, j, 1)}
-                  disabled={j === lane.sw.length - 1}
-                >
-                  <KeyboardArrowDownIcon />
-                </IconButton>
-                <IconButton
-                  aria-label="Quitar nadador"
-                  color="error"
-                  onClick={() => removeSwimmer(i, j)}
-                  disabled={lane.sw.length <= 1}
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Stack>
-            ))}
-          </Stack>
+          <SwimmerList
+            swimmers={lane.sw}
+            onRename={(j, name) => setSwimmerName(i, j, name)}
+            onRemove={(j) => removeSwimmer(i, j)}
+            onMove={(from, to) => reorderSwimmer(i, from, to)}
+          />
 
           <Stack
             direction="row"
